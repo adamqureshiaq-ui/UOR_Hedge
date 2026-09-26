@@ -1,0 +1,21 @@
+# Virtual Environment
+myenv/
+venv/
+ENV/
+env/
+
+# Environment Variables & Keys (NEVER COMMIT THIS)
+.env
+
+# SQLite Local Database
+*.db
+database.db
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE Settings
+.vscode/
+.idea/
