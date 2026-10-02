@@ -2,3 +2,9 @@ fastapi
 uvicorn
 alpaca-py
 python-dotenv
+sqlalchemy
+pyjwt
+passlib[bcrypt]
+bcrypt<4.1
+email-validator
+python-multipart
