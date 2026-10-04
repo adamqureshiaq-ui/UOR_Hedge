@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from fastapi.testclient import TestClient
 
 import main
+import market_data
 
 client = TestClient(main.app)
 
@@ -25,7 +26,7 @@ def test_login_rejects_wrong_password():
 
 
 def test_buy_deducts_cash(monkeypatch):
-    monkeypatch.setattr(main.stock_data_client, "get_stock_latest_trade", fake_price(200.0))
+    monkeypatch.setattr(market_data.stock_data_client, "get_stock_latest_trade", fake_price(200.0))
     headers = register_and_login("carol")
     resp = client.post("/trade/buy", json={"symbol": "aapl", "quantity": 3}, headers=headers)
     assert resp.status_code == 200
