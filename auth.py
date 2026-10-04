@@ -1,11 +1,11 @@
-import os
 from datetime import datetime, timedelta, timezone
 
 import jwt
 from passlib.context import CryptContext
 
-# Retrieve secret key or fall back to a local default for development
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "super-secret-key-change-in-production")
+from config import JWT_SECRET_KEY
+
+SECRET_KEY = JWT_SECRET_KEY
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # Token valid for 24 hours
 
