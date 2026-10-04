@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+from alpaca.common.exceptions import APIError
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockLatestTradeRequest
 
@@ -170,11 +171,11 @@ def buy_stock(
         request_params = StockLatestTradeRequest(symbol_or_symbols=symbol)
         latest_trade = stock_data_client.get_stock_latest_trade(request_params)
         price_per_share = float(latest_trade[symbol].price)
-    except Exception:
+    except (APIError, KeyError) as err:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Failed to fetch market price for '{symbol}'. Verify ticker symbol."
-        )
+        ) from err
 
     total_cost = price_per_share * qty
 
