@@ -1,8 +1,11 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Float, Integer, ForeignKey, DateTime
+
+from sqlalchemy import Column, DateTime, Float, ForeignKey, String
 from sqlalchemy.orm import relationship
+
 from database import Base
+
 
 class User(Base):
     __tablename__ = "users"

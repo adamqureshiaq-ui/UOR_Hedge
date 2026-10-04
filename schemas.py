@@ -1,4 +1,5 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
+
 
 class UserCreate(BaseModel):
     username: str
@@ -20,10 +21,6 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     user_id: str | None = None
-
-from pydantic import BaseModel, EmailStr, Field
-
-# Existing schemas ...
 
 class TradeRequest(BaseModel):
     symbol: str = Field(..., example="AAPL")

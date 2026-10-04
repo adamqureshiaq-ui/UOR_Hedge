@@ -1,23 +1,25 @@
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
-from dotenv import load_dotenv
-
-# Alpaca SDK Imports
-from alpaca.trading.client import TradingClient
-from alpaca.trading.requests import MarketOrderRequest
-from alpaca.trading.enums import OrderSide, TimeInForce
+from alpaca.common.exceptions import APIError
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockLatestTradeRequest
 
-# Local App Imports
-from database import engine, Base, get_db
+# Alpaca SDK Imports
+from alpaca.trading.client import TradingClient
+from alpaca.trading.enums import OrderSide, TimeInForce
+from alpaca.trading.requests import MarketOrderRequest
+from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
+
+import auth
 import models
 import schemas
-import auth
+
+# Local App Imports
+from database import Base, engine, get_db
 
 # 1. Load Environment Variables
 env_path = Path(__file__).resolve().parent / ".env"
@@ -169,11 +171,11 @@ def buy_stock(
         request_params = StockLatestTradeRequest(symbol_or_symbols=symbol)
         latest_trade = stock_data_client.get_stock_latest_trade(request_params)
         price_per_share = float(latest_trade[symbol].price)
-    except Exception:
+    except (APIError, KeyError) as err:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Failed to fetch market price for '{symbol}'. Verify ticker symbol."
-        )
+        ) from err
 
     total_cost = price_per_share * qty
 
