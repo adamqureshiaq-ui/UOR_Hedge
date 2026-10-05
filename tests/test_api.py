@@ -2,11 +2,10 @@ from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
-from database import SessionLocal
-
 import main
 import market_data
 import models
+from database import SessionLocal
 
 client = TestClient(main.app)
 
@@ -88,7 +87,7 @@ def test_sell_deducts_shares(monkeypatch):
     # First, buy 5 shares of AAPL
     client.post("/trade/buy", json={"symbol": "AAPL", "quantity": 5}, headers=headers)
     # Now sell 2 shares of AAPL
-    resp = client.post("/trade/sell", json={"symbol": "AAPL", "quantity": 2}, headers=headers)
+    client.post("/trade/sell", json={"symbol": "AAPL", "quantity": 2}, headers=headers)
     # TODO: switch to GET /portfolio once feature/portfolio-valuation is merged
     assert get_shares_owned("eve", "AAPL") == 3  # 5 - 2 = 3 shares remaining
 
