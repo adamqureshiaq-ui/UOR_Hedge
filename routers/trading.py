@@ -79,3 +79,59 @@ def buy_stock(
 
 
 # POST /trade/sell goes here (feature/trade-sell)
+
+@router.post("/sell", response_model=schemas.TradeResponse)
+def sell_stock(
+    trade_data: schemas.TradeRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Executes a virtual market sell order using real-time stock prices."""
+    symbol = trade_data.symbol.upper()
+    qty = trade_data.quantity
+
+    # 1. Fetch live stock price from Alpaca (raises a 400 if the symbol can't be priced)
+    price_per_share = get_latest_price(symbol)
+    total_proceeds = price_per_share * qty
+
+    # 2. Check if user has sufficient shares to sell
+    portfolio_item = db.query(models.Portfolio).filter(
+        models.Portfolio.user_id == current_user.id,
+        models.Portfolio.symbol == symbol
+    ).first()
+
+    if not portfolio_item or portfolio_item.quantity < qty:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Insufficient shares to sell. You have {portfolio_item.quantity if portfolio_item else 0} shares of {symbol}."
+        )
+
+    # 3. Deduct shares from portfolio
+    portfolio_item.quantity -= qty
+    if portfolio_item.quantity == 0:
+        db.delete(portfolio_item)
+
+    # 4. Add cash balance
+    current_user.cash_balance += total_proceeds
+
+    # 5. Log Transaction
+    transaction_record = models.Transaction(
+        user_id=current_user.id,
+        symbol=symbol,
+        order_type="SELL",
+        quantity=qty,
+        price_per_share=price_per_share,
+        total_amount=total_proceeds
+    )
+    db.add(transaction_record)
+
+    db.commit()
+
+    return {
+        "message": f"Successfully sold {qty} shares of {symbol}",
+        "symbol": symbol,
+        "quantity": qty,
+        "price_per_share": round(price_per_share, 2),
+        "total_cost": round(total_proceeds, 2),
+        "remaining_cash": round(current_user.cash_balance, 2)
+    }
