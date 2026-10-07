@@ -33,3 +33,17 @@ class TradeResponse(BaseModel):
     price_per_share: float
     total_cost: float
     remaining_cash: float
+
+class HoldingResponse(BaseModel):
+    symbol: str
+    quantity: float
+    average_buy_price: float
+    current_price: float
+    market_value: float
+    unrealized_profit_loss: float
+
+class PortfolioResponse(BaseModel):
+    cash_balance: float
+    holdings_value: float
+    total_equity: float
+    holdings: list[HoldingResponse]

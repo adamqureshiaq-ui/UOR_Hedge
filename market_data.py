@@ -25,3 +25,16 @@ def get_latest_price(symbol: str) -> float:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Failed to fetch market price for '{symbol}'. Verify ticker symbol."
         ) from err
+
+
+def get_latest_prices(symbols: list[str]) -> dict[str, float]:
+    """Returns {symbol: last traded price} for many symbols using ONE Alpaca request."""
+    try:
+        request_params = StockLatestTradeRequest(symbol_or_symbols=symbols)
+        latest_trades = stock_data_client.get_stock_latest_trade(request_params)
+        return {symbol: float(latest_trades[symbol].price) for symbol in symbols}
+    except (APIError, KeyError) as err:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not fetch live prices from the market data provider. Try again shortly."
+        ) from err
