@@ -55,3 +55,4 @@ def test_portfolio_fetches_all_prices_in_one_request(monkeypatch):
 def test_portfolio_requires_login():
     resp = client.get("/portfolio")
     assert resp.status_code == 401
+    
