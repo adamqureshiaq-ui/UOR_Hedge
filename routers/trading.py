@@ -5,7 +5,7 @@ import models
 import schemas
 from database import get_db
 from dependencies import get_current_user
-from market_data import get_latest_price
+from market_data import get_latest_bid_price, get_latest_ask_price
 
 router = APIRouter(prefix="/trade", tags=["Trading"])
 
@@ -21,7 +21,7 @@ def buy_stock(
     qty = trade_data.quantity
 
     # 1. Fetch live stock price from Alpaca (raises a 400 if the symbol can't be priced)
-    price_per_share = get_latest_price(symbol)
+    price_per_share = get_latest_ask_price(symbol)
     total_cost = price_per_share * qty
 
     # 2. Check if user has sufficient cash
@@ -91,7 +91,7 @@ def sell_stock(
     qty = trade_data.quantity
 
     # 1. Fetch live stock price from Alpaca (raises a 400 if the symbol can't be priced)
-    price_per_share = get_latest_price(symbol)
+    price_per_share = get_latest_bid_price(symbol)
     total_proceeds = price_per_share * qty
 
     # 2. Check if user has sufficient shares to sell
