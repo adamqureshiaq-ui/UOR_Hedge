@@ -5,6 +5,7 @@ from sqlalchemy import Column, DateTime, Float, ForeignKey, String
 from sqlalchemy.orm import relationship
 
 from database import Base
+from config import STARTING_CASH
 
 
 class User(Base):
@@ -14,7 +15,7 @@ class User(Base):
     username = Column(String, unique=True, nullable=False, index=True)
     email = Column(String, unique=True, nullable=False, index=True)
     hashed_password = Column(String, nullable=False)
-    cash_balance = Column(Float, default=10000.0)  # Default starting paper capital ($10,000)
+    cash_balance = Column(Float, default=STARTING_CASH)  # Default starting paper capital ($10,000)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
