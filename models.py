@@ -4,8 +4,8 @@ from datetime import datetime
 from sqlalchemy import Column, DateTime, Float, ForeignKey, String
 from sqlalchemy.orm import relationship
 
-from database import Base
 from config import STARTING_CASH
+from database import Base
 
 
 class User(Base):
