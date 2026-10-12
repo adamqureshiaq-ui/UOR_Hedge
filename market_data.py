@@ -1,7 +1,7 @@
 """Everything that talks to Alpaca lives here."""
 from alpaca.common.exceptions import APIError
 from alpaca.data.historical import StockHistoricalDataClient
-from alpaca.data.requests import StockLatestTradeRequest, StockLatestQuoteRequest
+from alpaca.data.requests import StockLatestQuoteRequest, StockLatestTradeRequest
 from fastapi import HTTPException, status
 
 from config import ALPACA_API_KEY, ALPACA_SECRET_KEY

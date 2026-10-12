@@ -1,5 +1,4 @@
-from helpers import client, register_and_login, use_market_prices, get_shares_owned
-
+from helpers import client, get_shares_owned, register_and_login, use_market_prices
 
 
 ### TESTS ###

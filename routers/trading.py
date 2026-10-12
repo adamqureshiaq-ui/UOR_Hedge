@@ -5,7 +5,7 @@ import models
 import schemas
 from database import get_db
 from dependencies import get_current_user
-from market_data import get_latest_bid_price, get_latest_ask_price
+from market_data import get_latest_ask_price, get_latest_bid_price
 
 router = APIRouter(prefix="/trade", tags=["Trading"])
 

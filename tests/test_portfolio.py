@@ -1,5 +1,12 @@
+from helpers import (
+    buy,
+    client,
+    fake_prices,
+    register_and_login,
+    use_market_prices,
+)
+
 import market_data
-from helpers import use_market_prices, get_shares_owned, buy, register_and_login, client, fake_prices, fake_quotes
 
 
 def test_portfolio_empty_equity_is_cash():
