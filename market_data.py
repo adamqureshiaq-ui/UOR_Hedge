@@ -29,6 +29,8 @@ def get_latest_price(symbol: str) -> float:
 
 def get_latest_prices(symbols: list[str]) -> dict[str, float]:
     """Returns {symbol: last traded price} for many symbols using ONE Alpaca request."""
+    if not symbols:
+        return {}
     try:
         request_params = StockLatestTradeRequest(symbol_or_symbols=symbols)
         latest_trades = stock_data_client.get_stock_latest_trade(request_params)
