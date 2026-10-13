@@ -47,3 +47,15 @@ class PortfolioResponse(BaseModel):
     holdings_value: float
     total_equity: float
     holdings: list[HoldingResponse]
+
+class LeaderboardEntry(BaseModel):
+    rank: int
+    username: str
+    total_equity: float
+    return_percent: float
+
+
+class LeaderboardResponse(BaseModel):
+    my_rank: int
+    total_members: int
+    entries: list[LeaderboardEntry]

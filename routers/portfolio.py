@@ -6,6 +6,7 @@ import schemas
 from database import get_db
 from dependencies import get_current_user
 from market_data import get_latest_prices
+from valuation import calculate_holdings_value
 
 router = APIRouter(prefix="/portfolio", tags=["Portfolio"])
 
@@ -21,18 +22,15 @@ def get_portfolio(
         models.Portfolio.user_id == current_user.id
     ).order_by(models.Portfolio.symbol).all()
 
-    # 2. Fetch live prices for every symbol in ONE Alpaca request (skip Alpaca if they own nothing)
-    symbols = [holding.symbol for holding in holdings]
-    prices = get_latest_prices(symbols) if symbols else {}
+    # 2. Fetch live prices for every symbol in ONE Alpaca request
+    prices = get_latest_prices([holding.symbol for holding in holdings])
 
     # 3. Value each holding
     holding_rows = []
-    holdings_value = 0.0
     for holding in holdings:
         current_price = prices[holding.symbol]
         market_value = holding.quantity * current_price
         cost_basis = holding.quantity * holding.average_buy_price
-        holdings_value += market_value
         holding_rows.append({
             "symbol": holding.symbol,
             "quantity": holding.quantity,
@@ -43,6 +41,7 @@ def get_portfolio(
         })
 
     # 4. Total equity = cash + current value of all holdings
+    holdings_value = calculate_holdings_value(holdings, prices)
     return {
         "cash_balance": round(current_user.cash_balance, 2),
         "holdings_value": round(holdings_value, 2),
