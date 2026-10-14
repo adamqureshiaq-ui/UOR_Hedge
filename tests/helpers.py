@@ -1,4 +1,5 @@
 """Shared test helpers: the test client, user setup, and fakes for Alpaca's market data."""
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
@@ -62,3 +63,20 @@ def get_shares_owned(username, symbol):
         return holding.quantity if holding else 0
     finally:
         db.close()
+
+
+def fake_daily_bars(closes_by_symbol):
+    """Fake historical-bars response: {"AAPL": [100.0, 101.0, ...]} -> one bar per day, oldest first."""
+    first_day = datetime(2025, 1, 1, tzinfo=timezone.utc)
+
+    def respond(req):
+        return {
+            symbol: [SimpleNamespace(timestamp=first_day + timedelta(days=i), close=close) for i, close in enumerate(closes)]
+            for symbol, closes in closes_by_symbol.items()
+        }
+    return respond
+
+
+def use_price_history(monkeypatch, closes_by_symbol):
+    """Fakes Alpaca's historical daily bars with the given closing prices."""
+    monkeypatch.setattr(market_data.stock_data_client, "get_stock_bars", fake_daily_bars(closes_by_symbol))
