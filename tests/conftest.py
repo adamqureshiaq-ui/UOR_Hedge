@@ -2,6 +2,7 @@ import os
 
 import pytest
 
+import market_data
 import models  # noqa: F401  – registers the tables on Base.metadata
 from database import Base, engine
 
@@ -14,3 +15,15 @@ def fresh_database():
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     yield
+
+
+@pytest.fixture(autouse=True)
+def block_real_alpaca(monkeypatch):
+    """Fail loudly if a test reaches the real Alpaca API instead of a fake."""
+    def refuse(method_name):
+        def fail(request):
+            raise AssertionError(f"Test called the real Alpaca API ({method_name}). Fake it, e.g. with use_market_prices().")
+        return fail
+
+    for method_name in ("get_stock_latest_trade", "get_stock_latest_quote", "get_stock_bars"):
+        monkeypatch.setattr(market_data.stock_data_client, method_name, refuse(method_name))

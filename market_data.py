@@ -1,7 +1,15 @@
 """Everything that talks to Alpaca lives here."""
+from datetime import datetime, timedelta, timezone
+
 from alpaca.common.exceptions import APIError
+from alpaca.data.enums import Adjustment
 from alpaca.data.historical import StockHistoricalDataClient
-from alpaca.data.requests import StockLatestQuoteRequest, StockLatestTradeRequest
+from alpaca.data.requests import (
+    StockBarsRequest,
+    StockLatestQuoteRequest,
+    StockLatestTradeRequest,
+)
+from alpaca.data.timeframe import TimeFrame
 from fastapi import HTTPException, status
 
 from config import ALPACA_API_KEY, ALPACA_SECRET_KEY
@@ -73,3 +81,34 @@ def get_latest_bid_price(symbol: str) -> float:
 def get_latest_ask_price(symbol: str) -> float:
     """Lowest price a seller is accepting right now: what a market BUY order would pay."""
     return _require_live_price(float(_get_latest_quote(symbol).ask_price), "ask", symbol)
+
+
+def get_daily_closes(symbols: list[str], lookback_days: int = 365) -> dict[str, list[float]]:
+    """Daily closing prices (oldest first) for each symbol, using ONE Alpaca request.
+
+    Only trading days that every symbol has a bar for are kept, so the lists line up day by day.
+    """
+    if not symbols:
+        return {}
+    now = datetime.now(timezone.utc)
+    try:
+        request_params = StockBarsRequest(
+            symbol_or_symbols=symbols,
+            timeframe=TimeFrame.Day,
+            start=now - timedelta(days=lookback_days),
+            end=now - timedelta(minutes=15),   # free plans can't query the most recent 15 minutes
+            adjustment=Adjustment.ALL,         # adjust for splits/dividends so they don't look like crashes
+        )
+        bars = stock_data_client.get_stock_bars(request_params)
+        closes_by_date = {
+            symbol: {bar.timestamp.date(): float(bar.close) for bar in bars[symbol]}
+            for symbol in symbols
+        }
+    except (APIError, KeyError) as err:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not fetch historical prices from the market data provider. Try again shortly."
+        ) from err
+
+    shared_dates = sorted(set.intersection(*(set(dates) for dates in closes_by_date.values())))
+    return {symbol: [closes_by_date[symbol][date] for date in shared_dates] for symbol in symbols}

@@ -59,3 +59,38 @@ class LeaderboardResponse(BaseModel):
     my_rank: int
     total_members: int
     entries: list[LeaderboardEntry]
+
+
+class MonteCarloRequest(BaseModel):
+    days: int = Field(21, ge=1, le=252, description="Trading days to simulate (21 ≈ 1 month, 252 ≈ 1 year)")
+    simulations: int = Field(1000, ge=100, le=10000, description="Number of possible futures to generate")
+    seed: int | None = Field(None, description="Set this to get the same results every time")
+
+
+class ValuePercentiles(BaseModel):
+    p5: float
+    p25: float
+    p50: float
+    p75: float
+    p95: float
+
+
+class ProjectionPoint(BaseModel):
+    day: int
+    p5: float
+    p50: float
+    p95: float
+
+
+class MonteCarloResponse(BaseModel):
+    method: str
+    days: int
+    simulations: int
+    historical_days_used: int
+    starting_value: float
+    expected_value: float
+    final_value_percentiles: ValuePercentiles
+    probability_of_loss: float
+    value_at_risk_95: float
+    projection: list[ProjectionPoint]
+    assumptions: str
