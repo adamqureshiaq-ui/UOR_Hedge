@@ -112,3 +112,10 @@ def get_daily_closes(symbols: list[str], lookback_days: int = 365) -> dict[str, 
 
     shared_dates = sorted(set.intersection(*(set(dates) for dates in closes_by_date.values())))
     return {symbol: [closes_by_date[symbol][date] for date in shared_dates] for symbol in symbols}
+
+
+def get_bid_and_ask(symbol: str) -> tuple[float | None, float | None]:
+    """Current bid and ask for one symbol. A side is None when nobody is bidding/asking (e.g. market closed)."""
+    quote = _get_latest_quote(symbol)
+    bid, ask = float(quote.bid_price), float(quote.ask_price)
+    return (bid if bid > 0 else None, ask if ask > 0 else None)

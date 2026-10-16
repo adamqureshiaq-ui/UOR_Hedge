@@ -5,6 +5,7 @@ from routers import (
     analytics,
     auth,
     leaderboard,
+    market,
     portfolio,
     trading,
 )
@@ -19,6 +20,7 @@ app.include_router(trading.router)
 app.include_router(portfolio.router)
 app.include_router(leaderboard.router)
 app.include_router(analytics.router)
+app.include_router(market.router)
 
 
 @app.get("/")
