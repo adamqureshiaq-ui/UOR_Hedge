@@ -2,6 +2,7 @@
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
+from alpaca.trading.enums import AssetExchange
 from fastapi.testclient import TestClient
 
 import main
@@ -80,3 +81,12 @@ def fake_daily_bars(closes_by_symbol):
 def use_price_history(monkeypatch, closes_by_symbol):
     """Fakes Alpaca's historical daily bars with the given closing prices."""
     monkeypatch.setattr(market_data.stock_data_client, "get_stock_bars", fake_daily_bars(closes_by_symbol))
+
+
+def use_stock_list(monkeypatch, stocks):
+    """Fakes Alpaca's list of stocks: [("AAPL", "Apple Inc."), ...]. Add False as a third item for an untradable stock."""
+    assets = [
+        SimpleNamespace(symbol=symbol, name=name, exchange=AssetExchange.NASDAQ, tradable=rest[0] if rest else True)
+        for symbol, name, *rest in stocks
+    ]
+    monkeypatch.setattr(market_data.trading_client, "get_all_assets", lambda filter=None: assets)

@@ -27,3 +27,8 @@ def block_real_alpaca(monkeypatch):
 
     for method_name in ("get_stock_latest_trade", "get_stock_latest_quote", "get_stock_bars"):
         monkeypatch.setattr(market_data.stock_data_client, method_name, refuse(method_name))
+
+    monkeypatch.setattr(market_data.trading_client, "get_all_assets", refuse("get_all_assets"))
+
+    # The stock list is cached in memory between requests; start every test without it
+    market_data.clear_stock_list_cache()

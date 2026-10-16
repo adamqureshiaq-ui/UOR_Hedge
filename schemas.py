@@ -102,3 +102,9 @@ class QuoteResponse(BaseModel):
     bid_price: float | None   # what you'd get if you sold now (None = no live bid, e.g. market closed)
     ask_price: float | None   # what you'd pay if you bought now (None = no live ask)
     spread: float | None      # ask − bid: the hidden cost of buying and immediately selling
+
+
+class StockSearchResult(BaseModel):
+    symbol: str
+    name: str
+    exchange: str

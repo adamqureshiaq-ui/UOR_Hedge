@@ -1,11 +1,11 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter, Depends, Path, Query
 
 import models
 import schemas
 from dependencies import get_current_user
-from market_data import get_bid_and_ask, get_latest_price
+from market_data import get_bid_and_ask, get_latest_price, get_tradable_stocks
 
 router = APIRouter(prefix="/market", tags=["Market Data"])
 
@@ -27,3 +27,39 @@ def get_quote(
         "ask_price": round(ask_price, 2) if ask_price is not None else None,
         "spread": round(ask_price - bid_price, 2) if bid_price is not None and ask_price is not None else None,
     }
+
+
+def _match_rank(stock: dict, query: str) -> int | None:
+    """How well a stock matches the search text: lower is better, None means no match."""
+    symbol, name_words = stock["symbol"], stock["name"].lower().split()
+    if symbol == query.upper():
+        return 0                                   # exact ticker: "AAPL"
+    if symbol.startswith(query.upper()):
+        return 1                                   # ticker starts with it: "AA" -> AAPL
+    if any(word.startswith(query.lower()) for word in name_words):
+        return 2                                   # a word in the name starts with it: "app" -> Apple Inc.
+    if query.lower() in stock["name"].lower():
+        return 3                                   # anywhere in the name
+    return None
+
+
+@router.get("/search", response_model=list[schemas.StockSearchResult])
+def search_stocks(
+    q: Annotated[str, Query(min_length=1, max_length=50, examples=["apple"])],
+    limit: Annotated[int, Query(ge=1, le=25)] = 10,
+    current_user: models.User = Depends(get_current_user)
+):
+    """Finds stocks by ticker or company name, best matches first, for the trading screen's search box."""
+    query = q.strip()
+    if not query:
+        return []
+
+    matches = []
+    for stock in get_tradable_stocks():
+        rank = _match_rank(stock, query)
+        if rank is not None:
+            matches.append((rank, len(stock["symbol"]), stock["symbol"], stock))
+
+    # Best rank first; among equals, shorter tickers first (AAPL before AAPLW), then alphabetical
+    matches.sort(key=lambda match: match[:3])
+    return [stock for *_, stock in matches[:limit]]
