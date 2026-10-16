@@ -1,4 +1,5 @@
 """Everything that talks to Alpaca lives here."""
+import time
 from datetime import datetime, timedelta, timezone
 
 from alpaca.common.exceptions import APIError
@@ -10,6 +11,9 @@ from alpaca.data.requests import (
     StockLatestTradeRequest,
 )
 from alpaca.data.timeframe import TimeFrame
+from alpaca.trading.client import TradingClient
+from alpaca.trading.enums import AssetClass, AssetStatus
+from alpaca.trading.requests import GetAssetsRequest
 from fastapi import HTTPException, status
 
 from config import ALPACA_API_KEY, ALPACA_SECRET_KEY
@@ -20,6 +24,7 @@ if not ALPACA_API_KEY or not ALPACA_SECRET_KEY:
     )
 
 stock_data_client = StockHistoricalDataClient(ALPACA_API_KEY, ALPACA_SECRET_KEY)
+trading_client = TradingClient(ALPACA_API_KEY, ALPACA_SECRET_KEY, paper=True)  # only used to list stocks
 
 
 def get_latest_price(symbol: str) -> float:
@@ -119,3 +124,43 @@ def get_bid_and_ask(symbol: str) -> tuple[float | None, float | None]:
     quote = _get_latest_quote(symbol)
     bid, ask = float(quote.bid_price), float(quote.ask_price)
     return (bid if bid > 0 else None, ask if ask > 0 else None)
+
+
+# ---------- Stock list (for search) ----------
+
+STOCK_LIST_MAX_AGE_SECONDS = 24 * 60 * 60   # the list of listed companies barely changes within a day
+_stock_list_cache = {"stocks": [], "loaded_at": None}
+
+
+def get_tradable_stocks() -> list[dict]:
+    """Every active, tradable US stock as {"symbol", "name", "exchange"}.
+
+    Alpaca returns about 10,000 of them, so the list is downloaded once and kept in memory for a day.
+    """
+    loaded_at = _stock_list_cache["loaded_at"]
+    if loaded_at is not None and time.monotonic() - loaded_at < STOCK_LIST_MAX_AGE_SECONDS:
+        return _stock_list_cache["stocks"]
+
+    try:
+        assets = trading_client.get_all_assets(
+            GetAssetsRequest(status=AssetStatus.ACTIVE, asset_class=AssetClass.US_EQUITY)
+        )
+    except APIError as err:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not fetch the list of stocks from the market data provider. Try again shortly."
+        ) from err
+
+    _stock_list_cache["stocks"] = [
+        {"symbol": asset.symbol, "name": asset.name or "", "exchange": asset.exchange.value}
+        for asset in assets
+        if asset.tradable
+    ]
+    _stock_list_cache["loaded_at"] = time.monotonic()
+    return _stock_list_cache["stocks"]
+
+
+def clear_stock_list_cache() -> None:
+    """Forget the cached stock list (used by tests so each one starts fresh)."""
+    _stock_list_cache["stocks"] = []
+    _stock_list_cache["loaded_at"] = None
