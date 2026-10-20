@@ -28,8 +28,9 @@ $env:DATABASE_URL="sqlite:///./test.db"; python -m pytest
 #### To test using ALPACA
 
 Run to load local web server:
-'''
+
+```
 uvicorn main:app --reload
-'''
+```
 
 And access: http://127.0.0.1:8000/docs
