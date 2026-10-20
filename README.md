@@ -1,10 +1,13 @@
+## Installation and libaries
+
 Install libraries and dependencies using
 
 ```
 pip install -r requirements-dev.txt
 ```
-...
 
+
+### Testing
 
 To run Tests, run:
 
@@ -21,3 +24,12 @@ $env:ALPACA_API_KEY="dummy"; $env:ALPACA_SECRET_KEY="dummy";
 
 $env:DATABASE_URL="sqlite:///./test.db"; python -m pytest
 ```
+
+#### To test using ALPACA
+
+Run:
+'''
+uvicorn main:app --reload
+'''
+
+Anc access: http://127.0.0.1:8000/docs
