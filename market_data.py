@@ -24,8 +24,9 @@ if not ALPACA_API_KEY or not ALPACA_SECRET_KEY:
     )
 
 stock_data_client = StockHistoricalDataClient(ALPACA_API_KEY, ALPACA_SECRET_KEY)
-trading_client = TradingClient(ALPACA_API_KEY, ALPACA_SECRET_KEY, paper=True)  # only used to list stocks
-
+# Only used to list stocks. raw_data=True returns Alpaca's plain JSON (dicts) instead of alpaca-py models,
+# so a new exchange the library doesn't know yet (e.g. TXSE) can't make the whole list fail to load.
+trading_client = TradingClient(ALPACA_API_KEY, ALPACA_SECRET_KEY, paper=True, raw_data=True)
 
 def get_latest_price(symbol: str) -> float:
     """Returns the last traded price for one symbol, or raises a 400 if Alpaca can't price it."""
@@ -152,9 +153,9 @@ def get_tradable_stocks() -> list[dict]:
         ) from err
 
     _stock_list_cache["stocks"] = [
-        {"symbol": asset.symbol, "name": asset.name or "", "exchange": asset.exchange.value}
+        {"symbol": asset["symbol"], "name": asset.get("name") or "", "exchange": asset.get("exchange") or ""}
         for asset in assets
-        if asset.tradable
+        if asset.get("tradable")
     ]
     _stock_list_cache["loaded_at"] = time.monotonic()
     return _stock_list_cache["stocks"]
