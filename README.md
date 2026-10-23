@@ -34,3 +34,20 @@ uvicorn main:app --reload
 ```
 
 And access: http://127.0.0.1:8000/docs
+
+
+## Run locally
+
+### Backend
+On one terminal, run:
+
+```
+uvicorn main:app --reload
+```
+
+### Frontend
+On a seperate terminal, run:
+
+```
+npm run dev
+```
