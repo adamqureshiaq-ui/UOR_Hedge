@@ -4,6 +4,9 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
 const TOKEN_KEY = 'uor_hedge_token'
 
+// Fired when the backend rejects the saved token (e.g. it expired), so the app can log the user out
+export const AUTH_EXPIRED_EVENT = 'auth:expired'
+
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY)
 }
@@ -51,6 +54,7 @@ export async function apiFetch(path, { method = 'GET', body, form } = {}) {
   if (!response.ok) {
     if (response.status === 401 && token) {
       clearToken() // the token expired or is invalid, so forget it
+      window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT))
     }
     throw new ApiError(response.status, errorMessage(data, response.status))
   }
