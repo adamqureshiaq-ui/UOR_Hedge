@@ -69,5 +69,8 @@ function errorMessage(data, status) {
   if (Array.isArray(detail)) {
     return detail.map((error) => error.msg).join('; ') // 422 validation errors
   }
+  if (status >= 500) {
+    return 'The server is not responding right now. Please try again shortly.'
+  }
   return `Request failed (${status})`
 }

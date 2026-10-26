@@ -5,9 +5,10 @@ import BackendStatus from './components/BackendStatus.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import PlaceholderPage from './pages/PlaceholderPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
+import DashboardPage from './pages/DashboardPage.jsx'
 
 const PAGES = [
-  { path: '/', title: 'Dashboard' },
+  { path: '/', title: 'Dashboard', element: <DashboardPage /> },
   { path: '/trade', title: 'Trade' },
   { path: '/leaderboard', title: 'Leaderboard' },
   { path: '/analytics', title: 'Analytics' },
@@ -57,7 +58,9 @@ export default function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route element={<RequireAuth />}>
             {PAGES.map((page) => (
-              <Route key={page.path} path={page.path} element={<PlaceholderPage title={page.title} />} />
+              <Route key={page.path} 
+              path={page.path} 
+              element={page.element ?? <PlaceholderPage title={page.title} />} />
             ))}
           </Route>
           <Route path="*" element={<PlaceholderPage title="Page not found" />} />
