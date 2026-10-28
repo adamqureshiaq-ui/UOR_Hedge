@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Float, ForeignKey, String
+from sqlalchemy import Column, DateTime, ForeignKey, Numeric, String
 from sqlalchemy.orm import relationship
 
 from config import STARTING_CASH
@@ -15,7 +15,7 @@ class User(Base):
     username = Column(String, unique=True, nullable=False, index=True)
     email = Column(String, unique=True, nullable=False, index=True)
     hashed_password = Column(String, nullable=False)
-    cash_balance = Column(Float, default=STARTING_CASH)  # Default starting paper capital ($10,000)
+    cash_balance = Column(Numeric(14, 2), default=STARTING_CASH)  # exact to the cent. Default starting paper capital ($10,000)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
@@ -29,9 +29,9 @@ class Portfolio(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     symbol = Column(String, nullable=False, index=True)  # e.g., "AAPL"
-    quantity = Column(Float, nullable=False, default=0.0)
-    average_buy_price = Column(Float, nullable=False)
-
+    quantity = Column(Numeric(18, 6), nullable=False, default=0)  # up to 6 decimal places of a share
+    average_buy_price = Column(Numeric(18, 2), nullable=False)
+    
     # Relationship back to User
     owner = relationship("User", back_populates="portfolios")
 
@@ -43,9 +43,9 @@ class Transaction(Base):
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     symbol = Column(String, nullable=False)
     order_type = Column(String, nullable=False)  # "BUY" or "SELL"
-    quantity = Column(Float, nullable=False)
-    price_per_share = Column(Float, nullable=False)
-    total_amount = Column(Float, nullable=False)
+    quantity = Column(Numeric(18, 6), nullable=False)
+    price_per_share = Column(Numeric(14, 4), nullable=False)
+    total_amount = Column(Numeric(14, 2), nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
     # Relationship back to User

@@ -1,5 +1,6 @@
 """Loads .env once and exposes every setting the app needs (like Django's settings.py)."""
 import os
+from decimal import Decimal
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -11,4 +12,4 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./database.db")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "super-secret-key-change-in-production")
 ALPACA_API_KEY = os.getenv("ALPACA_API_KEY")
 ALPACA_SECRET_KEY = os.getenv("ALPACA_SECRET_KEY")
-STARTING_CASH = 10000.0 # Paper capital every new member starts with
+STARTING_CASH = Decimal("10000.00")  # Paper capital every new member starts with

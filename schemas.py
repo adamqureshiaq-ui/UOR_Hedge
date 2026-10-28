@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -24,7 +26,7 @@ class TokenData(BaseModel):
 
 class TradeRequest(BaseModel):
     symbol: str = Field(..., example="AAPL")
-    quantity: float = Field(..., gt=0, example=5.0)
+    quantity: Decimal = Field(..., gt=0, decimal_places=6, example=5)  # exact; at most 6 decimal places
 
 class TradeResponse(BaseModel):
     message: str

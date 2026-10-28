@@ -89,3 +89,12 @@ def use_stock_list(monkeypatch, stocks):
         for symbol, name, *rest in stocks
     ]
     monkeypatch.setattr(market_data.trading_client, "get_all_assets", lambda filter=None: assets)
+
+
+def get_cash_balance(username):
+    """The user's cash exactly as stored in the database."""
+    db = SessionLocal()
+    try:
+        return db.query(models.User).filter(models.User.username == username).first().cash_balance
+    finally:
+        db.close()

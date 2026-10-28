@@ -40,8 +40,9 @@ def run_monte_carlo(
 
     # 2. Today's value of each position (same live prices as /portfolio)
     prices = get_latest_prices(symbols)
-    position_values = np.array([holding.quantity * prices[holding.symbol] for holding in holdings])
-    starting_value = current_user.cash_balance + position_values.sum()
+    position_values = np.array([float(holding.quantity) * prices[holding.symbol] for holding in holdings])
+    cash = float(current_user.cash_balance)  # numpy works in floats
+    starting_value = cash + position_values.sum()
 
     # 3. About a year of daily closes, one Alpaca request for all symbols
     closes_by_symbol = get_daily_closes(symbols)
@@ -55,7 +56,7 @@ def run_monte_carlo(
     # 4. Fit GBM to the history and simulate
     mean_log_returns, covariance = estimate_gbm_parameters(closes)
     values_by_day = simulate_portfolio_values(
-        position_values, current_user.cash_balance, mean_log_returns, covariance,
+        position_values, cash, mean_log_returns, covariance,
         days=request.days, simulations=request.simulations, seed=request.seed,
     )
 

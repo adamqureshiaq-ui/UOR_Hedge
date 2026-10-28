@@ -35,7 +35,7 @@ def get_leaderboard(
     # 3. Work out each member's equity, then sort: highest equity first, username breaks ties
     standings = []
     for user in users:
-        equity = user.cash_balance + calculate_holdings_value(holdings_by_user[user.id], prices)
+        equity = float(user.cash_balance) + calculate_holdings_value(holdings_by_user[user.id], prices)
         standings.append((user.username, round(equity, 2)))
     standings.sort(key=lambda standing: (-standing[1], standing[0]))
 
@@ -47,7 +47,7 @@ def get_leaderboard(
             "rank": entries[-1]["rank"] if tied_with_previous else position,
             "username": username,
             "total_equity": equity,
-            "return_percent": round((equity - STARTING_CASH) / STARTING_CASH * 100, 2),
+            "return_percent": round((equity - float(STARTING_CASH)) / float(STARTING_CASH) * 100, 2),
         })
 
     my_rank = next(entry["rank"] for entry in entries if entry["username"] == current_user.username)
