@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -6,6 +8,7 @@ import schemas
 from database import get_db
 from dependencies import get_current_user
 from market_data import get_latest_ask_price, get_latest_bid_price
+from money import round_money, round_shares, to_decimal
 
 router = APIRouter(prefix="/trade", tags=["Trading"])
 
@@ -16,13 +19,13 @@ def buy_stock(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    """Executes a virtual market buy order using real-time stock prices."""
+    """Executes a virtual market buy order at the live ask price."""
     symbol = trade_data.symbol.upper()
-    qty = trade_data.quantity
+    qty = trade_data.quantity  # already an exact Decimal
 
-    # 1. Fetch live stock price from Alpaca (raises a 400 if the symbol can't be priced)
-    price_per_share = get_latest_ask_price(symbol)
-    total_cost = price_per_share * qty
+    # 1. Fetch the live ask from Alpaca (raises a 400 if there isn't one) and work out the cost to the cent
+    price_per_share = to_decimal(get_latest_ask_price(symbol))
+    total_cost = round_money(price_per_share * qty)
 
     # 2. Check if user has sufficient cash
     if current_user.cash_balance < total_cost:
@@ -44,7 +47,7 @@ def buy_stock(
         # Calculate new weighted average buy price
         total_existing_cost = portfolio_item.quantity * portfolio_item.average_buy_price
         new_total_qty = portfolio_item.quantity + qty
-        portfolio_item.average_buy_price = (total_existing_cost + total_cost) / new_total_qty
+        portfolio_item.average_buy_price = round_shares((total_existing_cost + total_cost) / new_total_qty)
         portfolio_item.quantity = new_total_qty
     else:
         portfolio_item = models.Portfolio(
@@ -72,13 +75,11 @@ def buy_stock(
         "message": f"Successfully purchased {qty} shares of {symbol}",
         "symbol": symbol,
         "quantity": qty,
-        "price_per_share": round(price_per_share, 2),
-        "total_cost": round(total_cost, 2),
-        "remaining_cash": round(current_user.cash_balance, 2)
+        "price_per_share": price_per_share,
+        "total_cost": total_cost,
+        "remaining_cash": current_user.cash_balance
     }
 
-
-# POST /trade/sell goes here (feature/trade-sell)
 
 @router.post("/sell", response_model=schemas.TradeResponse)
 def sell_stock(
@@ -86,27 +87,28 @@ def sell_stock(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    """Executes a virtual market sell order using real-time stock prices."""
+    """Executes a virtual market sell order at the live bid price."""
     symbol = trade_data.symbol.upper()
-    qty = trade_data.quantity
+    qty = trade_data.quantity  # already an exact Decimal
 
-    # 1. Fetch live stock price from Alpaca (raises a 400 if the symbol can't be priced)
-    price_per_share = get_latest_bid_price(symbol)
-    total_proceeds = price_per_share * qty
-
-    # 2. Check if user has sufficient shares to sell
+    # 1. Check the user owns enough shares (before asking Alpaca for a price)
     portfolio_item = db.query(models.Portfolio).filter(
         models.Portfolio.user_id == current_user.id,
         models.Portfolio.symbol == symbol
     ).first()
 
     if not portfolio_item or portfolio_item.quantity < qty:
+        owned = portfolio_item.quantity if portfolio_item else Decimal(0)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Insufficient shares to sell. You have {portfolio_item.quantity if portfolio_item else 0} shares of {symbol}."
+            detail=f"Insufficient shares to sell. You have {owned.normalize():f} shares of {symbol}."  # "2", not "2.000000"
         )
 
-    # 3. Deduct shares from portfolio
+    # 2. Fetch the live bid from Alpaca (raises a 400 if there isn't one) and work out the proceeds to the cent
+    price_per_share = to_decimal(get_latest_bid_price(symbol))
+    total_proceeds = round_money(price_per_share * qty)
+
+    # 3. Deduct shares from portfolio (exact, so selling everything really reaches 0)
     portfolio_item.quantity -= qty
     if portfolio_item.quantity == 0:
         db.delete(portfolio_item)
@@ -131,7 +133,7 @@ def sell_stock(
         "message": f"Successfully sold {qty} shares of {symbol}",
         "symbol": symbol,
         "quantity": qty,
-        "price_per_share": round(price_per_share, 2),
-        "total_cost": round(total_proceeds, 2),
-        "remaining_cash": round(current_user.cash_balance, 2)
+        "price_per_share": price_per_share,
+        "total_cost": total_proceeds,
+        "remaining_cash": current_user.cash_balance
     }

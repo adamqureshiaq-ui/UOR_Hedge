@@ -28,13 +28,15 @@ def get_portfolio(
     # 3. Value each holding
     holding_rows = []
     for holding in holdings:
+        # Stored values are exact Decimals; this page only displays estimates, so convert to float
+        quantity, average_buy_price = float(holding.quantity), float(holding.average_buy_price)
         current_price = prices[holding.symbol]
-        market_value = holding.quantity * current_price
-        cost_basis = holding.quantity * holding.average_buy_price
+        market_value = quantity * current_price
+        cost_basis = quantity * average_buy_price
         holding_rows.append({
             "symbol": holding.symbol,
-            "quantity": holding.quantity,
-            "average_buy_price": round(holding.average_buy_price, 2),
+            "quantity": quantity,
+            "average_buy_price": round(average_buy_price, 2),
             "current_price": round(current_price, 2),
             "market_value": round(market_value, 2),
             "unrealized_profit_loss": round(market_value - cost_basis, 2),
@@ -42,9 +44,10 @@ def get_portfolio(
 
     # 4. Total equity = cash + current value of all holdings
     holdings_value = calculate_holdings_value(holdings, prices)
+    cash = float(current_user.cash_balance)
     return {
-        "cash_balance": round(current_user.cash_balance, 2),
+        "cash_balance": round(cash, 2),
         "holdings_value": round(holdings_value, 2),
-        "total_equity": round(current_user.cash_balance + holdings_value, 2),
+        "total_equity": round(cash + holdings_value, 2),
         "holdings": holding_rows,
     }
