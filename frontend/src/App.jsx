@@ -6,10 +6,11 @@ import LoginPage from './pages/LoginPage.jsx'
 import PlaceholderPage from './pages/PlaceholderPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
 import DashboardPage from './pages/DashboardPage.jsx'
+import TradePage from './pages/TradePage.jsx'
 
 const PAGES = [
   { path: '/', title: 'Dashboard', element: <DashboardPage /> },
-  { path: '/trade', title: 'Trade' },
+  { path: '/trade', title: 'Trade', element: <TradePage /> },
   { path: '/leaderboard', title: 'Leaderboard' },
   { path: '/analytics', title: 'Analytics' },
 ]

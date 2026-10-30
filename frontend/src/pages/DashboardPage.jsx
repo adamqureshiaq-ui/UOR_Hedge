@@ -77,7 +77,9 @@ export default function DashboardPage() {
                   const cost = holding.quantity * holding.average_buy_price
                   return (
                     <tr key={holding.symbol}>
-                      <th scope="row">{holding.symbol}</th>
+                      <th scope="row">
+                        <Link to={`/trade?symbol=${holding.symbol}`}>{holding.symbol}</Link>
+                      </th>
                       <td>{formatShares(holding.quantity)}</td>
                       <td>{formatMoney(holding.average_buy_price)}</td>
                       <td>{formatMoney(holding.current_price)}</td>
