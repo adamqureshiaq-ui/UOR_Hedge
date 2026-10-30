@@ -509,3 +509,83 @@ button:disabled {
   background: color-mix(in srgb, var(--positive) 10%, transparent);
   border-radius: 8px;
 }
+
+/* ---------- Leaderboard ---------- */
+
+.leaderboard {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  transition: opacity 0.2s;
+}
+
+.leaderboard.refreshing {
+  opacity: 0.6;
+}
+
+.leaderboard h1 {
+  margin: 0;
+}
+
+.leaderboard .card p {
+  margin: -8px 0 12px;
+  font-size: 0.9rem;
+}
+
+.of-total {
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.leaderboard-table th,
+.leaderboard-table td {
+  padding: 10px 12px;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+}
+
+.leaderboard-table th[scope='row'],
+.leaderboard-table thead th:nth-child(2) {
+  text-align: left;
+}
+
+.leaderboard-table .rank,
+.leaderboard-table thead th:first-child {
+  width: 4rem;
+  text-align: left;
+  color: var(--muted);
+}
+
+.leaderboard-table thead th {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* The member's own row stands out with a tint and a side bar, plus the "(you)" label */
+.leaderboard-table tr.me {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.leaderboard-table tr.me .rank {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.you {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.leaderboard-table tr.gap td {
+  text-align: center;
+  color: var(--muted);
+}
