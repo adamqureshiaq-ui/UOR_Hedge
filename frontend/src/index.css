@@ -589,3 +589,169 @@ button:disabled {
   text-align: center;
   color: var(--muted);
 }
+
+
+/* ---------- Analytics ---------- */
+
+.analytics {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.analytics h1 {
+  margin: 0;
+}
+
+.analytics .intro {
+  margin: -12px 0 0;
+  max-width: 70ch;
+}
+
+.sim-controls {
+  display: flex;
+  flex-direction: row; /* the login form's rule stacks fields; this form sits in one row */
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+select {
+  padding: 10px 12px;
+  font: inherit;
+  font-weight: 400;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.sim-result {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  transition: opacity 0.2s;
+}
+
+.tile-sub {
+  margin-top: 4px;
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+.range-value {
+  font-size: 1.15rem;
+}
+
+.fan-chart {
+  margin: 0;
+}
+
+/* Legend mirrors the marks: a line for the median, a wash for the band, a dashed line for today */
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.chart-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.key {
+  display: inline-block;
+  flex: none;
+}
+
+.line-key {
+  width: 16px;
+  height: 2px;
+  background: var(--accent);
+}
+
+.band-swatch {
+  width: 16px;
+  height: 10px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.band-key {
+  width: 16px;
+  height: 2px;
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.start-key {
+  width: 16px;
+  border-top: 2px dashed var(--muted);
+}
+
+.chart-tooltip {
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.12);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.data-table th,
+.data-table td {
+  padding: 8px 12px;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+}
+
+.data-table th[scope='row'],
+.data-table thead th:first-child {
+  text-align: left;
+  font-weight: 400;
+}
+
+.data-table thead th {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.day-table {
+  margin-top: 16px;
+}
+
+.day-table summary {
+  cursor: pointer;
+  color: var(--accent);
+}
+
+.day-table .table-scroll {
+  max-height: 320px;
+  overflow-y: auto;
+  margin-top: 8px;
+}
+
+.assumptions p {
+  margin: 0 0 8px;
+}

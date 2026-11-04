@@ -31,3 +31,15 @@ function sign(value) {
   if (value < 0) return '−'
   return ''
 }
+
+const compactMoney = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  notation: 'compact',
+  maximumFractionDigits: 1,
+})
+
+// "$10.2K", "$1.3M": short labels for chart axes
+export function formatMoneyCompact(value) {
+  return compactMoney.format(value)
+}
