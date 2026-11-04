@@ -39,15 +39,16 @@ And access: http://127.0.0.1:8000/docs
 ## Run locally
 
 ### Backend
-On one terminal, run:
+On one terminal, run the backend on the root directory:
 
 ```
 uvicorn main:app --reload
 ```
 
 ### Frontend
-On a seperate terminal, run:
+On a seperate terminal, switch to the frontend directory and run the frontend:
 
 ```
+cd frontend
 npm run dev
 ```
