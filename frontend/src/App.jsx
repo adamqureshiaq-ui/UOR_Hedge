@@ -1,3 +1,4 @@
+import {lazy, Suspense} from 'react'
 import { NavLink, Route, Routes, useNavigate } from 'react-router-dom'
 import RequireAuth from './auth/RequireAuth.jsx'
 import { useAuth } from './auth/useAuth.js'
@@ -9,12 +10,22 @@ import DashboardPage from './pages/DashboardPage.jsx'
 import TradePage from './pages/TradePage.jsx'
 import LeaderboardPage from './pages/LeaderboardPage.jsx'
 
+// Loaded only when someone opens Analytics, so the charting library isn't downloaded on every page
+const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage.jsx'))
+
 const PAGES = [
   { path: '/', title: 'Dashboard', element: <DashboardPage /> },
   { path: '/trade', title: 'Trade', element: <TradePage /> },
   { path: '/leaderboard', title: 'Leaderboard', element: <LeaderboardPage /> },
-  { path: '/analytics', title: 'Analytics' },
-]
+  {
+    path: '/analytics',
+    title: 'Analytics',
+    element: (
+      <Suspense fallback={<p className="muted">Loading…</p>}>
+        <AnalyticsPage />
+      </Suspense>
+    ),
+  },]
 
 export default function App() {
   const { user, logout } = useAuth()
