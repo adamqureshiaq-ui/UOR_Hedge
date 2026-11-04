@@ -7,7 +7,7 @@ pip install -r requirements-dev.txt
 ```
 
 
-### Testing
+## Testing
 
 To run Tests, run:
 
