@@ -98,3 +98,52 @@ def get_cash_balance(username):
         return db.query(models.User).filter(models.User.username == username).first().cash_balance
     finally:
         db.close()
+
+
+# ---------- Fake Alpaca corporate actions (splits and dividends) ----------
+
+def alpaca_split(symbol, old_rate, new_rate, ex_date, action_id=None):
+    """One split as Alpaca returns it. A 4-for-1 split is old_rate=1, new_rate=4; 1-for-10 is old_rate=10, new_rate=1."""
+    kind = "forward_splits" if new_rate > old_rate else "reverse_splits"
+    return kind, {
+        "id": action_id or f"split-{symbol}-{ex_date}",
+        "symbol": symbol,
+        "old_rate": old_rate,
+        "new_rate": new_rate,
+        "ex_date": ex_date,
+        "process_date": ex_date,
+    }
+
+
+def alpaca_dividend(symbol, rate, ex_date, payable_date=None, action_id=None):
+    """One cash dividend as Alpaca returns it: `rate` dollars per share."""
+    item = {
+        "id": action_id or f"dividend-{symbol}-{ex_date}",
+        "symbol": symbol,
+        "rate": rate,
+        "special": False,
+        "foreign": False,
+        "ex_date": ex_date,
+        "process_date": ex_date,
+    }
+    if payable_date:
+        item["payable_date"] = payable_date
+    return "cash_dividends", item
+
+
+def use_corporate_actions(monkeypatch, *actions):
+    """Fakes Alpaca's corporate actions with alpaca_split(...) / alpaca_dividend(...) entries.
+
+    Returns a list that records each request made, so a test can check what was asked for.
+    """
+    grouped = {}
+    for kind, item in actions:
+        grouped.setdefault(kind, []).append(item)
+    requests_made = []
+
+    def respond(request):
+        requests_made.append(request)
+        return grouped
+
+    monkeypatch.setattr(market_data.corporate_actions_client, "get_corporate_actions", respond)
+    return requests_made
