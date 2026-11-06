@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Numeric, String
+from sqlalchemy import Column, Date, DateTime, ForeignKey, Numeric, String
 from sqlalchemy.orm import relationship
 
 from config import STARTING_CASH
@@ -42,8 +42,8 @@ class Transaction(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     symbol = Column(String, nullable=False)
-    order_type = Column(String, nullable=False)  # "BUY" or "SELL"
-    quantity = Column(Numeric(18, 6), nullable=False)
+    order_type = Column(String, nullable=False)  # "BUY", "SELL" or "SPLIT" (quantity = shares added, negative for a reverse split)    quantity = Column(Numeric(18, 6), nullable=False)
+    quantity = Column(Numeric(18, 6), nullable=False)  # up to 6 decimal places of a share
     price_per_share = Column(Numeric(14, 4), nullable=False)
     total_amount = Column(Numeric(14, 2), nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
@@ -51,3 +51,21 @@ class Transaction(Base):
     # Relationship back to User
     user = relationship("User", back_populates="transactions")
 
+
+class AppliedCorporateAction(Base):
+    """A split (later also a dividend) that has been applied. Alpaca's id as the key means it can't be applied twice."""
+    __tablename__ = "applied_corporate_actions"
+
+    id = Column(String, primary_key=True)  # Alpaca's id for the action
+    kind = Column(String, nullable=False)  # "split"
+    symbol = Column(String, nullable=False)
+    ex_date = Column(Date, nullable=False)
+    applied_at = Column(DateTime, default=datetime.utcnow)
+
+
+class CorporateActionsCheckpoint(Base):
+    """The last market day the corporate-actions job has checked, one row per kind of action."""
+    __tablename__ = "corporate_actions_checkpoints"
+
+    kind = Column(String, primary_key=True)  # "split"
+    checked_through = Column(Date, nullable=False)
