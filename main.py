@@ -16,6 +16,7 @@ from routers import (
 # Create any missing database tables
 Base.metadata.create_all(bind=engine)
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Runs once when the server starts, before it accepts requests."""
@@ -23,7 +24,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Finance Society Broker API")
+app = FastAPI(title="Finance Society Broker API", lifespan=lifespan)
 
 app.include_router(auth.router)
 app.include_router(trading.router)
