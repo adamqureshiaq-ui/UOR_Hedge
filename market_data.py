@@ -19,6 +19,7 @@ from alpaca.trading.client import TradingClient
 from alpaca.trading.enums import AssetClass, AssetStatus
 from alpaca.trading.requests import GetAssetsRequest
 from fastapi import HTTPException, status
+from requests.exceptions import RequestException
 
 from config import ALPACA_API_KEY, ALPACA_SECRET_KEY
 from money import to_decimal
@@ -219,7 +220,7 @@ def get_corporate_actions(symbols: list[str], start: date, end: date) -> list[Co
                 limit=None,  # no cap: follow every page Alpaca returns
             )
         )
-    except APIError as err:
+    except (APIError, RequestException) as err:  # RequestException: Alpaca couldn't be reached at all
         raise MarketDataError("Could not fetch splits and dividends from Alpaca.") from err
 
     actions = []
