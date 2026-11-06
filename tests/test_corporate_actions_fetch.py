@@ -5,6 +5,7 @@ from decimal import Decimal
 import pytest
 from alpaca.common.exceptions import APIError
 from helpers import alpaca_dividend, alpaca_split, use_corporate_actions
+from requests.exceptions import ConnectionError as RequestsConnectionError
 
 import market_data
 from market_data import MarketDataError, get_corporate_actions
@@ -127,6 +128,15 @@ def test_no_symbols_means_no_alpaca_call():
 def test_alpaca_error_raises_market_data_error(monkeypatch):
     def fail(request):
         raise APIError("service unavailable")
+
+    monkeypatch.setattr(market_data.corporate_actions_client, "get_corporate_actions", fail)
+    with pytest.raises(MarketDataError):
+        get_corporate_actions(["AAPL"], START, END)
+
+
+def test_unreachable_alpaca_raises_market_data_error(monkeypatch):
+    def fail(request):
+        raise RequestsConnectionError("no internet")
 
     monkeypatch.setattr(market_data.corporate_actions_client, "get_corporate_actions", fail)
     with pytest.raises(MarketDataError):

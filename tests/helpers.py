@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
+import corporate_actions
 import main
 import market_data
 import models
@@ -147,3 +148,51 @@ def use_corporate_actions(monkeypatch, *actions):
 
     monkeypatch.setattr(market_data.corporate_actions_client, "get_corporate_actions", respond)
     return requests_made
+
+
+
+# ---------- Corporate actions job ----------
+
+def run_corporate_actions(today):
+    """Runs the daily splits job as if it were `today` (a date in New York)."""
+    db = SessionLocal()
+    try:
+        return corporate_actions.apply_corporate_actions(db, today=today)
+    finally:
+        db.close()
+
+
+def move_trades_to(username, moment):
+    """Re-dates every trade the user has made so far, e.g. to before a split took effect."""
+    db = SessionLocal()
+    try:
+        user = db.query(models.User).filter(models.User.username == username).first()
+        db.query(models.Transaction).filter(models.Transaction.user_id == user.id).update({"timestamp": moment})
+        db.commit()
+    finally:
+        db.close()
+
+
+def get_average_buy_price(username, symbol):
+    db = SessionLocal()
+    try:
+        user = db.query(models.User).filter(models.User.username == username).first()
+        holding = db.query(models.Portfolio).filter(
+            models.Portfolio.user_id == user.id,
+            models.Portfolio.symbol == symbol,
+        ).first()
+        return holding.average_buy_price
+    finally:
+        db.close()
+
+
+def get_transactions(username, order_type):
+    db = SessionLocal()
+    try:
+        user = db.query(models.User).filter(models.User.username == username).first()
+        return db.query(models.Transaction).filter(
+            models.Transaction.user_id == user.id,
+            models.Transaction.order_type == order_type,
+        ).all()
+    finally:
+        db.close()

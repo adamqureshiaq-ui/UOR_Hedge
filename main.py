@@ -1,5 +1,8 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
+from corporate_actions import catch_up_on_startup
 from database import Base, engine
 from routers import (
     analytics,
@@ -12,6 +15,13 @@ from routers import (
 
 # Create any missing database tables
 Base.metadata.create_all(bind=engine)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Runs once when the server starts, before it accepts requests."""
+    catch_up_on_startup()  # apply any stock splits missed while the server was off
+    yield
+
 
 app = FastAPI(title="Finance Society Broker API")
 

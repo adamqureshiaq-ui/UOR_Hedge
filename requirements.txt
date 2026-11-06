@@ -9,3 +9,4 @@ bcrypt<4.1
 email-validator
 python-multipart
 numpy
+tzdata  # time zone data (New York market hours) on systems without it, e.g. Windows
