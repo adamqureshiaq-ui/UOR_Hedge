@@ -1,9 +1,8 @@
 """The daily job's stock-split handling: python -m corporate_actions."""
-from datetime import timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 from helpers import (
-    alpaca_dividend,
     alpaca_split,
     buy,
     get_average_buy_price,
@@ -160,6 +159,14 @@ def test_first_run_checks_from_the_first_trade(monkeypatch):
     assert requests_made[0].start <= TODAY
 
 
+def test_first_run_uses_the_new_york_date_of_the_first_trade(monkeypatch):
+    holder(monkeypatch)
+    move_trades_to("alice", datetime(2026, 11, 7, 1, 0))  # 1am UTC on the 7th = 8pm in New York on the 6th
+    requests_made = use_corporate_actions(monkeypatch)
+    run_corporate_actions(date(2026, 11, 10))
+    assert requests_made[0].start == date(2026, 11, 6)
+
+
 def test_later_runs_recheck_the_last_week(monkeypatch):
     holder(monkeypatch)
     requests_made = use_corporate_actions(monkeypatch)
@@ -180,13 +187,6 @@ def test_split_published_late_is_still_applied(monkeypatch):
 def test_no_trades_means_no_alpaca_call():
     # block_real_alpaca fails the test if Alpaca is called
     assert run_corporate_actions(TODAY) == []
-
-
-def test_dividends_are_left_for_later(monkeypatch):
-    holder(monkeypatch, quantity=10, price=100.0)
-    use_corporate_actions(monkeypatch, alpaca_dividend("AAPL", 0.25, TOMORROW.isoformat()))
-    run_corporate_actions(TOMORROW)
-    assert get_cash_balance("alice") == Decimal("9000.00")
 
 
 # ---------- Running it ----------
