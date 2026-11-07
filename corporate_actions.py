@@ -1,8 +1,8 @@
-"""Applies stock splits from Alpaca to members' holdings.
+"""Applies stock splits from Alpaca to members' holdings, and records the cash dividends they are owed.
 
 Run it once a day, before the US market opens:   python -m corporate_actions
-It also runs once whenever the server starts. Running it twice, or days late, is safe: each split is
-applied exactly once, and only to the shares a member held before the split took effect.
+It also runs once whenever the server starts. Running it twice, or days late, is safe: each action is
+handled exactly once, and only for the shares a member held before its ex-date.
 """
 import logging
 from collections import defaultdict
@@ -19,11 +19,16 @@ logger = logging.getLogger(__name__)
 
 MARKET_TIMEZONE = ZoneInfo("America/New_York")
 RECHECK_DAYS = 7  # each run also re-checks the last week, in case Alpaca published an action late
-
+KINDS = ("split", "cash_dividend")  # each kind keeps its own checkpoint, so one added later starts from scratch
 
 def market_today() -> date:
     """Today's date in New York, where the US market's day starts and ends."""
     return datetime.now(MARKET_TIMEZONE).date()
+
+
+def market_date_of(moment: datetime) -> date:
+    """The New York date of a naive UTC timestamp (a trade at 9pm New York is already the next day in UTC)."""
+    return moment.replace(tzinfo=timezone.utc).astimezone(MARKET_TIMEZONE).date()
 
 
 def start_of_market_day(day: date) -> datetime:
@@ -32,41 +37,47 @@ def start_of_market_day(day: date) -> datetime:
 
 
 def apply_corporate_actions(db, today: date | None = None) -> list[str]:
-    """Applies every split up to `today` that hasn't been applied yet. Returns one line per split applied."""
+    """Handles every split and dividend with an ex-date up to `today` not handled yet. Returns one line for each."""
     today = today or market_today()
     symbols = sorted(symbol for (symbol,) in db.query(models.Transaction.symbol).distinct())
     if not symbols:
         return []  # nobody has ever traded, so no split can affect anyone
 
-    actions = get_corporate_actions(symbols, _check_from(db, today), today)
+    start = min(_check_from(db, kind, today) for kind in KINDS)
+    actions = get_corporate_actions(symbols, start, today)  # oldest first, so a split is in place before a later dividend
     already_applied = {action_id for (action_id,) in db.query(models.AppliedCorporateAction.id)}
 
     report = []
     for action in actions:
-        if action.kind == "split" and action.id not in already_applied:
+        if action.id in already_applied:
+            continue
+        if action.kind == "split":
             report.append(_apply_split(db, action))
-            db.commit()  # each split is saved together with the record that it was applied
+        else:
+            report.append(_record_dividend(db, action))
+        db.commit()  # each action is saved together with the record that it was handled
 
-    _save_checkpoint(db, today)
+    for kind in KINDS:
+        _save_checkpoint(db, kind, today)
     db.commit()
     return report
 
 
-def _check_from(db, today: date) -> date:
+def _check_from(db, kind: str, today: date) -> date:
     """First ex-date to ask Alpaca about: a week before the last check, or the first trade ever made."""
-    checkpoint = db.get(models.CorporateActionsCheckpoint, "split")
+    checkpoint = db.get(models.CorporateActionsCheckpoint, kind)
     if checkpoint:
         return checkpoint.checked_through - timedelta(days=RECHECK_DAYS)
     first_trade = db.query(models.Transaction.timestamp).order_by(models.Transaction.timestamp).first()
-    return first_trade[0].date() if first_trade else today
+    return market_date_of(first_trade[0]) if first_trade else today
 
 
-def _save_checkpoint(db, today: date) -> None:
-    checkpoint = db.get(models.CorporateActionsCheckpoint, "split")
+def _save_checkpoint(db, kind: str, today: date) -> None:
+    checkpoint = db.get(models.CorporateActionsCheckpoint, kind)
     if checkpoint:
         checkpoint.checked_through = today
     else:
-        db.add(models.CorporateActionsCheckpoint(kind="split", checked_through=today))
+        db.add(models.CorporateActionsCheckpoint(kind=kind, checked_through=today))
 
 
 def _shares_held_before(db, symbol: str, moment: datetime) -> dict[str, Decimal]:
@@ -102,6 +113,33 @@ def _apply_split(db, split: CorporateAction) -> str:
         id=split.id, kind="split", symbol=split.symbol, ex_date=split.ex_date
     ))
     return f"{split.symbol}: split x{float(split.ratio):g} on {split.ex_date}, {len(holders)} member(s) adjusted"
+
+
+def _record_dividend(db, dividend: CorporateAction) -> str:
+    """Records what each member is owed: shares held going into the ex-date x cash per share. Paid later."""
+    # The action's record goes in first: each pending dividend points at it
+    db.add(models.AppliedCorporateAction(
+        id=dividend.id, kind="cash_dividend", symbol=dividend.symbol, ex_date=dividend.ex_date
+    ))
+    holders = _shares_held_before(db, dividend.symbol, start_of_market_day(dividend.ex_date))
+    total = Decimal(0)
+    for user_id, shares in holders.items():
+        amount = round_money(shares * dividend.cash_per_share)
+        total += amount
+        db.add(models.PendingDividend(
+            action_id=dividend.id,
+            user_id=user_id,
+            symbol=dividend.symbol,
+            shares=shares,
+            cash_per_share=dividend.cash_per_share,
+            amount=amount,
+            ex_date=dividend.ex_date,
+            payable_date=dividend.payable_date,
+        ))
+    return (
+        f"{dividend.symbol}: dividend ${dividend.cash_per_share}/share on {dividend.ex_date}, "
+        f"{len(holders)} member(s) owed ${total:,.2f} on {dividend.payable_date}"
+    )
 
 
 def _adjust_holding(db, user_id, split, shares_before, added, took_effect) -> None:
@@ -150,7 +188,7 @@ def catch_up_on_startup() -> None:
         for line in apply_corporate_actions(db):
             logger.info(line)
     except Exception:
-        logger.exception("Could not apply stock splits at startup; the server will start anyway")
+        logger.exception("Could not apply splits and dividends at startup; the server will start anyway")
     finally:
         db.close()
 
@@ -164,7 +202,7 @@ def main() -> None:
         raise SystemExit(f"Failed: {err}") from err
     finally:
         db.close()
-    print("\n".join(report) if report else "No new splits to apply")
+    print("\n".join(report) if report else "No new splits or dividends to apply")
 
 
 if __name__ == "__main__":

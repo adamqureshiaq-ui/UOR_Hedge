@@ -196,3 +196,15 @@ def get_transactions(username, order_type):
         ).all()
     finally:
         db.close()
+
+
+def get_pending_dividends(username):
+    """Every dividend entitlement recorded for the user, oldest ex-date first."""
+    db = SessionLocal()
+    try:
+        user = db.query(models.User).filter(models.User.username == username).first()
+        return db.query(models.PendingDividend).filter(
+            models.PendingDividend.user_id == user.id
+        ).order_by(models.PendingDividend.ex_date).all()
+    finally:
+        db.close()
