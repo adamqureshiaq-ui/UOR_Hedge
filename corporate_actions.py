@@ -1,4 +1,5 @@
-"""Applies stock splits from Alpaca to members' holdings, and records the cash dividends they are owed.
+"""Applies stock splits from Alpaca to members' holdings, and handles cash dividends: records what each
+member is owed on the ex-date, then pays it into their cash on the pay date.
 
 Run it once a day, before the US market opens:   python -m corporate_actions
 It also runs once whenever the server starts. Running it twice, or days late, is safe: each action is
@@ -20,6 +21,7 @@ logger = logging.getLogger(__name__)
 MARKET_TIMEZONE = ZoneInfo("America/New_York")
 RECHECK_DAYS = 7  # each run also re-checks the last week, in case Alpaca published an action late
 KINDS = ("split", "cash_dividend")  # each kind keeps its own checkpoint, so one added later starts from scratch
+SHARE_CHANGES = {"BUY": 1, "SPLIT": 1, "SELL": -1}  # how each transaction type moves a member's share count
 
 def market_today() -> date:
     """Today's date in New York, where the US market's day starts and ends."""
@@ -37,7 +39,8 @@ def start_of_market_day(day: date) -> datetime:
 
 
 def apply_corporate_actions(db, today: date | None = None) -> list[str]:
-    """Handles every split and dividend with an ex-date up to `today` not handled yet. Returns one line for each."""
+    """Handles every split and dividend with an ex-date up to `today` not handled yet, then pays every dividend
+    due by `today`. Returns one line for each action handled and each dividend paid."""
     today = today or market_today()
     symbols = sorted(symbol for (symbol,) in db.query(models.Transaction.symbol).distinct())
     if not symbols:
@@ -60,7 +63,7 @@ def apply_corporate_actions(db, today: date | None = None) -> list[str]:
     for kind in KINDS:
         _save_checkpoint(db, kind, today)
     db.commit()
-    return report
+    return report + _pay_due_dividends(db, today)
 
 
 def _check_from(db, kind: str, today: date) -> date:
@@ -88,7 +91,8 @@ def _shares_held_before(db, symbol: str, moment: datetime) -> dict[str, Decimal]
         models.Transaction.timestamp < moment,
     )
     for trade in trades:
-        held[trade.user_id] += -trade.quantity if trade.order_type == "SELL" else trade.quantity
+        # Dividend payments are cash, not shares, so they don't change the count
+        held[trade.user_id] += SHARE_CHANGES.get(trade.order_type, 0) * trade.quantity
     return {user_id: shares for user_id, shares in held.items() if shares > 0}
 
 
@@ -141,6 +145,33 @@ def _record_dividend(db, dividend: CorporateAction) -> str:
         f"{len(holders)} member(s) owed ${total:,.2f} on {dividend.payable_date}"
     )
 
+def _pay_due_dividends(db, today: date) -> list[str]:
+    """Moves every unpaid dividend whose pay date has arrived into the member's cash."""
+    due = db.query(models.PendingDividend).filter(
+        models.PendingDividend.paid_at.is_(None),
+        models.PendingDividend.payable_date <= today,
+    ).order_by(models.PendingDividend.payable_date, models.PendingDividend.symbol).all()
+
+    paid_by_action = defaultdict(list)
+    for owed in due:
+        member = db.get(models.User, owed.user_id)
+        member.cash_balance += owed.amount
+        owed.paid_at = datetime.utcnow()
+        db.add(models.Transaction(
+            user_id=owed.user_id,
+            symbol=owed.symbol,
+            order_type="DIVIDEND",
+            quantity=owed.shares,              # the shares it was paid on (not a change in shares held)
+            price_per_share=owed.cash_per_share,
+            total_amount=owed.amount,
+        ))
+        paid_by_action[(owed.symbol, owed.ex_date)].append(owed.amount)
+    db.commit()  # the cash, the "paid" mark and the history entry are saved together
+
+    return [
+        f"{symbol}: paid ${sum(amounts):,.2f} dividend (ex {ex_date}) to {len(amounts)} member(s)"
+        for (symbol, ex_date), amounts in paid_by_action.items()
+    ]
 
 def _adjust_holding(db, user_id, split, shares_before, added, took_effect) -> None:
     holding = db.query(models.Portfolio).filter(
@@ -202,8 +233,8 @@ def main() -> None:
         raise SystemExit(f"Failed: {err}") from err
     finally:
         db.close()
-    print("\n".join(report) if report else "No new splits or dividends to apply")
-
+    print("\n".join(report) if report else "No new splits or dividends, and no dividends due")
+    
 
 if __name__ == "__main__":
     main()

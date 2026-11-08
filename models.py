@@ -50,7 +50,9 @@ class Transaction(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     symbol = Column(String, nullable=False)
-    order_type = Column(String, nullable=False)  # "BUY", "SELL" or "SPLIT" (quantity = shares added, negative for a reverse split)
+    # "BUY", "SELL", "SPLIT" (quantity = shares added, negative for a reverse split)
+    # or "DIVIDEND" (quantity = shares it was paid on, total_amount = cash received)
+    order_type = Column(String, nullable=False)
     quantity = Column(Numeric(18, 6), nullable=False)  # up to 6 decimal places of a share
     price_per_share = Column(Numeric(14, 4), nullable=False)
     total_amount = Column(Numeric(14, 2), nullable=False)
@@ -93,4 +95,4 @@ class PendingDividend(Base):
     amount = Column(Numeric(14, 2), nullable=False)        # shares x cash_per_share, to the cent
     ex_date = Column(Date, nullable=False)
     payable_date = Column(Date, nullable=False)
-    paid_at = Column(DateTime, nullable=True)              # set when the cash is paid (next PR)
+    paid_at = Column(DateTime, nullable=True)              # set when the cash is paid

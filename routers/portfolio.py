@@ -6,7 +6,7 @@ import schemas
 from database import get_db
 from dependencies import get_current_user
 from market_data import get_latest_prices
-from valuation import calculate_holdings_value
+from valuation import calculate_holdings_value, pending_dividend_totals
 
 router = APIRouter(prefix="/portfolio", tags=["Portfolio"])
 
@@ -42,12 +42,14 @@ def get_portfolio(
             "unrealized_profit_loss": round(market_value - cost_basis, 2),
         })
 
-    # 4. Total equity = cash + current value of all holdings
+    # 4. Total equity = cash + current value of all holdings + dividends owed but not yet paid
     holdings_value = calculate_holdings_value(holdings, prices)
     cash = float(current_user.cash_balance)
+    pending = pending_dividend_totals(db, current_user.id).get(current_user.id, 0.0)
     return {
         "cash_balance": round(cash, 2),
         "holdings_value": round(holdings_value, 2),
-        "total_equity": round(cash + holdings_value, 2),
+        "pending_dividends": round(pending, 2),
+        "total_equity": round(cash + holdings_value + pending, 2),
         "holdings": holding_rows,
     }

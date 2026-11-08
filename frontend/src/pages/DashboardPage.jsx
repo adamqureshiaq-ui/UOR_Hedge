@@ -17,7 +17,7 @@ export default function DashboardPage() {
     )
   }
 
-  const { cash_balance, holdings_value, total_equity, holdings } = portfolio
+  const { cash_balance, holdings_value, pending_dividends, total_equity, holdings } = portfolio
   const unrealized = holdings.reduce((total, holding) => total + holding.unrealized_profit_loss, 0)
   const costBasis = holdings.reduce((total, holding) => total + holding.quantity * holding.average_buy_price, 0)
 
@@ -46,6 +46,11 @@ export default function DashboardPage() {
       <div className="stat-row">
         <StatTile label="Cash">{formatMoney(cash_balance)}</StatTile>
         <StatTile label="Invested">{formatMoney(holdings_value)}</StatTile>
+        {/* Counted in total equity, so the tiles always add up to it */}
+        <StatTile label="Pending dividends">
+          {formatMoney(pending_dividends)}
+          <div className="tile-sub muted">Paid into cash on each pay date</div>
+        </StatTile>
         <StatTile label="Unrealized P/L">
           <Change amount={unrealized} percent={costBasis > 0 ? (unrealized / costBasis) * 100 : undefined} />
         </StatTile>
