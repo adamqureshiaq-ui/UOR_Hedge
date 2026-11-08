@@ -47,6 +47,7 @@ class HoldingResponse(BaseModel):
 class PortfolioResponse(BaseModel):
     cash_balance: float
     holdings_value: float
+    pending_dividends: float  # owed for past ex-dates, paid into cash on each pay date
     total_equity: float
     holdings: list[HoldingResponse]
 

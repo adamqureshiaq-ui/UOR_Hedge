@@ -9,7 +9,7 @@ from config import STARTING_CASH
 from database import get_db
 from dependencies import get_current_user
 from market_data import get_latest_prices
-from valuation import calculate_holdings_value
+from valuation import calculate_holdings_value, pending_dividend_totals
 
 router = APIRouter(prefix="/leaderboard", tags=["Society"])
 
@@ -20,7 +20,7 @@ def get_leaderboard(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    """Ranks every member by real-time total equity (cash + live value of their holdings)."""
+    """Ranks every member by real-time total equity (cash + live value of their holdings + dividends owed)."""
     # 1. Load every member and every holding in two queries (not one query per member)
     users = db.query(models.User).all()
     all_holdings = db.query(models.Portfolio).all()
@@ -32,10 +32,12 @@ def get_leaderboard(
     # 2. One Alpaca request for every distinct symbol anyone owns
     prices = get_latest_prices(sorted({holding.symbol for holding in all_holdings}))
 
-    # 3. Work out each member's equity, then sort: highest equity first, username breaks ties
+        # 3. Work out each member's equity, then sort: highest equity first, username breaks ties
+    pending = pending_dividend_totals(db)  # one query for everyone's unpaid dividends
     standings = []
     for user in users:
-        equity = float(user.cash_balance) + calculate_holdings_value(holdings_by_user[user.id], prices)
+        holdings_value = calculate_holdings_value(holdings_by_user[user.id], prices)
+        equity = float(user.cash_balance) + holdings_value + pending.get(user.id, 0.0)
         standings.append((user.username, round(equity, 2)))
     standings.sort(key=lambda standing: (-standing[1], standing[0]))
 
