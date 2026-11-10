@@ -53,9 +53,13 @@ def upgrade_database() -> None:
     """
     from alembic import command
     from alembic.config import Config
+    from alembic.migration import MigrationContext
 
     config = Config(str(ALEMBIC_INI))
-    tables = inspect(engine).get_table_names()
-    if "users" in tables and "alembic_version" not in tables:
+    with engine.connect() as connection:
+        # Check for a recorded migration, not just the alembic_version table: some commands
+        # (e.g. `alembic check`) create that table empty
+        recorded = MigrationContext.configure(connection).get_current_revision()
+    if recorded is None and inspect(engine).has_table("users"):
         command.stamp(config, BASELINE_REVISION)
     command.upgrade(config, "head")

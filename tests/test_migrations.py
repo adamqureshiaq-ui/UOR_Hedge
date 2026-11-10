@@ -1,9 +1,11 @@
 """Alembic migrations: they must build exactly the tables models.py describes, on SQLite and Postgres."""
+import pytest
 from alembic import command
 from alembic.autogenerate import compare_metadata
 from alembic.config import Config
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
+from alembic.util import CommandError
 from sqlalchemy import inspect, text
 
 from database import ALEMBIC_INI, BASELINE_REVISION, Base, engine, upgrade_database
@@ -53,6 +55,12 @@ def test_database_made_before_migrations_is_upgraded_without_errors():
     upgrade_database()
     assert current_revision() == LATEST
 
+def test_database_made_before_migrations_survives_alembic_check_being_run_first():
+    # `alembic check` refuses an un-upgraded database, but leaves behind an empty alembic_version table
+    with pytest.raises(CommandError):
+        command.check(ALEMBIC_CONFIG)
+    upgrade_database()
+    assert current_revision() == LATEST
 
 def test_database_made_before_migrations_keeps_its_data():
     with engine.begin() as connection:
