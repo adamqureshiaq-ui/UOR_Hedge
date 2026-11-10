@@ -3,6 +3,7 @@ uvicorn
 alpaca-py
 python-dotenv
 sqlalchemy
+alembic  # database migrations (see "Changing the database" in README.md)
 pyjwt
 passlib[bcrypt]
 bcrypt<4.1

@@ -12,7 +12,7 @@ from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 import models
-from database import Base, SessionLocal, engine
+from database import SessionLocal, upgrade_database
 from market_data import CorporateAction, MarketDataError, get_corporate_actions
 from money import round_money, round_shares
 
@@ -225,7 +225,7 @@ def catch_up_on_startup() -> None:
 
 
 def main() -> None:
-    Base.metadata.create_all(bind=engine)  # in case the server has never been started on this database
+    upgrade_database()  # in case the server has never been started on this database
     db = SessionLocal()
     try:
         report = apply_corporate_actions(db)
