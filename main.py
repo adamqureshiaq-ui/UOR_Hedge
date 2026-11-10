@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from corporate_actions import catch_up_on_startup
-from database import Base, engine
+from database import upgrade_database
 from routers import (
     analytics,
     auth,
@@ -13,13 +13,11 @@ from routers import (
     trading,
 )
 
-# Create any missing database tables
-Base.metadata.create_all(bind=engine)
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Runs once when the server starts, before it accepts requests."""
+    upgrade_database()  # apply any new migrations (creates every table on a brand-new database)
     catch_up_on_startup()  # apply any splits and dividends missed while the server was off
     yield
 

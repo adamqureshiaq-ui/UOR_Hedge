@@ -1,6 +1,7 @@
 import os
 
 import pytest
+from sqlalchemy import text
 
 import market_data
 import models  # noqa: F401  – registers the tables on Base.metadata
@@ -13,7 +14,9 @@ def fresh_database():
     if "test" not in os.getenv("DATABASE_URL", ""):
         pytest.exit("Refusing to wipe a non-test database. Set DATABASE_URL to a test database.")
     Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
+    with engine.begin() as connection:  # Alembic's record of applied migrations isn't one of our models
+        connection.execute(text("DROP TABLE IF EXISTS alembic_version"))
+    Base.metadata.create_all(bind=engine)  # quicker than running every migration before each test
     yield
 
 
