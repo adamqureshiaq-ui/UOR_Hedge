@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
+from config import CORS_ORIGINS
 from corporate_actions import catch_up_on_startup
 from database import upgrade_database
 from routers import (
@@ -23,6 +25,15 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Finance Society Broker API", lifespan=lifespan)
+
+# Let the frontend's website (a different address from this API in production) call it from the browser.
+# Login uses a token in the Authorization header, not cookies, so credentials stay switched off.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Authorization", "Content-Type"],
+)
 
 app.include_router(auth.router)
 app.include_router(trading.router)

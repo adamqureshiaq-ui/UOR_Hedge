@@ -29,7 +29,7 @@ jobs:
     env:
       ALPACA_API_KEY: dummy
       ALPACA_SECRET_KEY: dummy
-      JWT_SECRET_KEY: ci-only-secret
+      JWT_SECRET_KEY: ci-only-secret-at-least-32-characters-long  # shorter keys make PyJWT warn on every token
       # The database name must contain "test": conftest.py refuses to wipe any other database
       DATABASE_URL: ${{ matrix.database == 'postgres' && 'postgresql://postgres:postgres@localhost:5432/uor_test' || 'sqlite:///./test.db' }}
     steps:
