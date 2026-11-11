@@ -74,3 +74,23 @@ alembic revision --autogenerate -m "add bio to users"
 
 Other commands: `alembic current` (which migration a database is at), `alembic history`,
 `alembic downgrade -1` (undo the last migration, locally only).
+
+
+## Production settings
+
+Locally nothing needs setting beyond the Alpaca keys (see `.env.example`). When deployed, the backend
+(Render) and frontend (Cloudflare Pages) need:
+
+| Where | Setting | Value |
+|---|---|---|
+| Render | `ENVIRONMENT` | `production` |
+| Render | `JWT_SECRET_KEY` | 32+ random characters: `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
+| Render | `DATABASE_URL` | the Neon connection string |
+| Render | `CORS_ORIGINS` | the Cloudflare Pages address, e.g. `https://uor-hedge.pages.dev` (no trailing slash needed) |
+| Render | `ALPACA_API_KEY`, `ALPACA_SECRET_KEY` | the Alpaca keys |
+| Cloudflare Pages | `VITE_API_BASE_URL` | the Render address, e.g. `https://uor-hedge-api.onrender.com` |
+
+With `ENVIRONMENT=production` the server refuses to start if the JWT secret is the default or too short,
+the database is SQLite, or `CORS_ORIGINS` is empty or `*`. The error lists every problem.
+
+`VITE_API_BASE_URL` is read when the frontend is **built**, so after changing it, redeploy the frontend.
