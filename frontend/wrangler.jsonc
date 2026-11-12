@@ -1,0 +1,10 @@
+// Cloudflare Workers settings for hosting the built frontend (the files `npm run build` puts in dist/)
+{
+  "name": "whiteknights-capital-fund",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./dist",
+    // Send unknown paths like /leaderboard to index.html, so React Router can show the right page
+    "not_found_handling": "single-page-application"
+  }
+}
